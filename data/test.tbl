@@ -1,0 +1,43 @@
+# target name        accession  query name           accession  hmmfrom hmm to   alifrom    ali to   envfrom    env to    sq len strand   E-value  score  bias  description of target
+#------------------- ---------- -------------------- ---------- ------- -------   -------   -------   -------   -------   ------- ------ --------- ------ ----- ---------------------
+2                    -          TR                   -                2     317    338944    339292    338943    339292 133811386    +     1.9e-37  136.7   1.4  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+6                    -          TR                   -                2     317  61501865  61501510  61501866  61501510 110092459    -     4.7e-33  122.3   1.2  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -              142     317  62615451  62615652  62615428  62615652 110092459    +     4.9e-16   66.5   1.2  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+4                    -          TR                   -              117     313  79789793  79790022  79789778  79790024 120922496    +     6.4e-11   49.7   2.8  unmasked:chromosome primary_assembly:daLinVulg1.1:4:1:120922496:1
+2                    -          TR                   -              221     317    339462    339556    339442    339556 133811386    +     6.6e-07   36.5   3.8  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+2                    -          TR                   -              221     317    339726    339820    339706    339820 133811386    +     6.6e-07   36.5   3.8  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+1                    -          TR                   -              150     289  70216788  70216942  70216766  70216953 153338251    +     0.00041   27.3   3.7  unmasked:chromosome primary_assembly:daLinVulg1.1:1:1:153338251:1
+6                    -          TR                   -               54     161  62607550  62607678  62607532  62607681 110092459    +        0.23   18.3   0.2  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+4                    -          TR                   -                1     125  84982281  84982161  84982281  84982141 120922496    -        0.29   18.0   8.9  unmasked:chromosome primary_assembly:daLinVulg1.1:4:1:120922496:1
+2                    -          TR                   -                2     120  91849787  91849646  91849807  91849626 133811386    -        0.97   16.3   0.3  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+2                    -          TR                   -               34     124  16129167  16129255  16129148  16129276 133811386    +         1.6   15.6   1.5  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+3                    -          TR                   -               29     163 113458129 113457930 113458149 113457929 127462361    -         1.7   15.5   0.9  unmasked:chromosome primary_assembly:daLinVulg1.1:3:1:127462361:1
+1                    -          TR                   -               68     128 110824763 110824829 110824741 110824849 153338251    +         3.3   14.5   1.2  unmasked:chromosome primary_assembly:daLinVulg1.1:1:1:153338251:1
+2                    -          TR                   -               38     124 113221455 113221355 113221476 113221328 133811386    -         3.8   14.3   5.5  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+3                    -          TR                   -              152     196  30941678  30941728  30941655  30941750 127462361    +         4.1   14.2   3.2  unmasked:chromosome primary_assembly:daLinVulg1.1:3:1:127462361:1
+4                    -          TR                   -               23     119  32633863  32633991  32633852  32634011 120922496    +         5.6   13.8   4.5  unmasked:chromosome primary_assembly:daLinVulg1.1:4:1:120922496:1
+2                    -          TR                   -                1      84  17245707  17245790  17245707  17245810 133811386    +         6.6   13.5   3.3  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+2                    -          TR                   -               24     130 100425460 100425649 100425449 100425669 133811386    +         7.4   13.4   2.5  unmasked:chromosome primary_assembly:daLinVulg1.1:2:1:133811386:1
+6                    -          TR                   -                2      80  57368759  57368662  57368760  57368638 110092459    -         7.5   13.4   6.5  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -               49     125  62573209  62573284  62573181  62573305 110092459    +         8.3   13.2   0.8  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      84  57400776  57400675  57400777  57400637 110092459    -         8.5   13.2   6.1  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      84  57402994  57402893  57402995  57402855 110092459    -         8.5   13.2   6.1  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      84  57405212  57405111  57405213  57405073 110092459    -         8.5   13.2   6.1  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      84  57407429  57407328  57407430  57407290 110092459    -         8.5   13.2   6.1  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      84  57409646  57409545  57409647  57409507 110092459    -         8.5   13.2   6.1  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+4                    -          TR                   -               33     133  18464960  18464832  18464966  18464809 120922496    -         8.7   13.1   3.8  unmasked:chromosome primary_assembly:daLinVulg1.1:4:1:120922496:1
+6                    -          TR                   -                2      83  57391912  57391812  57391913  57391774 110092459    -         9.2   13.1   6.3  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      83  57396344  57396244  57396345  57396206 110092459    -         9.2   13.1   6.3  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -                2      83  57398560  57398460  57398561  57398422 110092459    -         9.2   13.1   6.3  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+6                    -          TR                   -               67     122  46018286  46018364  46018263  46018384 110092459    +         9.2   13.1   3.6  unmasked:chromosome primary_assembly:daLinVulg1.1:6:1:110092459:1
+3                    -          TR                   -              105     172  94773395  94773499  94773376  94773501 127462361    +         9.9   13.0   0.0  unmasked:chromosome primary_assembly:daLinVulg1.1:3:1:127462361:1
+#
+# Program:         nhmmer
+# Version:         3.4 (Aug 2023)
+# Pipeline mode:   SEARCH
+# Query file:      ../telomeric-identifier/data/TR.hmm
+# Target file:     ../telomeric-identifier/data/Linaria_vulgaris-GCA_948329865.1-unmasked.fa.gz
+# Option settings: ../hmmer-3.4/src/nhmmer --tblout test.tbl ../telomeric-identifier/data/TR.hmm ../telomeric-identifier/data/Linaria_vulgaris-GCA_948329865.1-unmasked.fa.gz 
+# Current dir:     /Users/mc9148/Documents/software/hmm_tblout
+# Date:            Wed May  1 14:59:32 2024
+# [ok]
