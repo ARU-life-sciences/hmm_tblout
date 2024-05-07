@@ -41,7 +41,7 @@ mod record;
 pub use crate::{
     error::{Error, ErrorKind, Result},
     reader::{Reader, RecordsIntoIter, RecordsIter},
-    record::Record,
+    record::{Meta, Program, Record},
 };
 
 #[cfg(test)]
@@ -52,9 +52,7 @@ mod tests {
         s.as_bytes()
     }
 
-    #[test]
-    fn test_whole_file() {
-        const FILE: &str = "# target name        accession  query name           accession  hmmfrom hmm to  alifrom   ali to  envfrom   env to   sq len strand   E-value  score  bias  description of target
+    const NHMMER_FILE: &str = "# target name        accession  query name           accession  hmmfrom hmm to  alifrom   ali to  envfrom   env to   sq len strand   E-value  score  bias  description of target
 #------------------- ---------- -------------------- ---------- ------- -------  -------  -------  -------  -------  ------- ------ --------- ------ ----- ---------------------
 SUPER_1              -          TR                   -                1     315 10988331 10987997 10988331 10987995 52766903    -     6.5e-34  124.1   1.2  -
 SUPER_3              -          TR                   -              139     204 17951382 17951472 17951359 17951492 49366223    +        0.74   15.6   3.0  -
@@ -83,10 +81,21 @@ SUPER_2              -          TR                   -                2     100 
 # Date:            Fri May  3 10:07:36 2024
 # [ok]";
 
-        let mut reader = Reader::from_reader(b(FILE));
+    #[test]
+    fn test_whole_file() {
+        let reader = Reader::from_reader(b(NHMMER_FILE));
 
-        let first = reader.records().next().unwrap().unwrap();
+        let first = reader.unwrap().records().next().unwrap().unwrap();
 
         assert_eq!(first.target_name(), "SUPER_1".to_string())
+    }
+
+    #[test]
+    fn test_meta() {
+        let reader = Reader::from_reader(b(NHMMER_FILE));
+        let r = reader.unwrap();
+        let meta = r.meta();
+        assert_eq!(meta.program(), Program::Nhmmer);
+        assert_eq!(meta.version(), "3.4 (Aug 2023)".to_string());
     }
 }

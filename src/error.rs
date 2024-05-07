@@ -42,6 +42,8 @@ pub enum ErrorKind {
     Parser(String),
     /// Error whilst reading a record.
     ReadRecord(String),
+    /// Metadata error
+    Meta(String),
 }
 
 impl From<io::Error> for Error {
@@ -69,6 +71,7 @@ impl fmt::Display for Error {
             ErrorKind::Float(ref err) => write!(f, "parsing float error - {}", err),
             ErrorKind::Parser(ref err) => write!(f, "parser error - {}", err),
             ErrorKind::ReadRecord(ref err) => write!(f, "reading record - {}", err),
+            ErrorKind::Meta(ref err) => write!(f, "metadata error - {}", err),
         }
     }
 }
