@@ -135,8 +135,6 @@ impl<R: io::Read> Reader<R> {
 
     /// Read a single record from an input reader.
     fn read_record(&mut self) -> Result<Option<Record>> {
-        // reset the line counter
-        self.line = 0;
         // for this function, we read a single line and parse
         // on whitespace, returning a record. We skip lines
         // starting with a comment character '#'.
