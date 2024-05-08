@@ -41,7 +41,7 @@ mod record;
 pub use crate::{
     error::{Error, ErrorKind, Result},
     reader::{Reader, RecordsIntoIter, RecordsIter},
-    record::{Meta, Program, Record},
+    record::{DNARecord, Meta, Program, ProteinRecord},
 };
 
 #[cfg(test)]
@@ -81,6 +81,119 @@ SUPER_2              -          TR                   -                2     100 
 # Date:            Fri May  3 10:07:36 2024
 # [ok]";
 
+    const JACKHMMER_FILE: &str = "#                                                                 --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# target name          accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#  ------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+ENSTSYP00000010994     -          CMIL_MAD||KEN1/4-29  -            9.6e-21   66.2   0.7   9.3e-20   63.1   0.3   2.9   3   0   0   3   3   1   1 -
+ENSMICP00000006968     -          CMIL_MAD||KEN1/4-29  -            1.2e-20   65.9   0.7   9.2e-20   63.1   0.3   2.7   3   0   0   3   3   1   1 -
+ENSOCUP00000005644     -          CMIL_MAD||KEN1/4-29  -            1.3e-20   65.8   1.1   9.6e-20   63.0   0.3   2.9   3   0   0   3   3   2   1 -
+ENSCJAP00000038871     -          CMIL_MAD||KEN1/4-29  -            1.5e-20   65.6   1.0   9.4e-20   63.1   0.3   2.7   3   0   0   3   3   2   1 -
+ENSSBOP00000009355     -          CMIL_MAD||KEN1/4-29  -            2.2e-20   65.1   0.5   9.3e-20   63.1   0.3   2.3   2   0   0   2   2   1   1 -
+ENSHGLP00100017467     -          CMIL_MAD||KEN1/4-29  -            2.2e-20   65.1   0.6   9.4e-20   63.1   0.3   2.3   2   0   0   2   2   1   1 -
+ENSRBIP00000038600     -          CMIL_MAD||KEN1/4-29  -            2.2e-20   65.1   0.5   9.3e-20   63.1   0.3   2.3   2   0   0   2   2   1   1 -
+ENSCCAP00000017737     -          CMIL_MAD||KEN1/4-29  -            2.3e-20   65.0   0.5   9.2e-20   63.1   0.3   2.2   2   0   0   2   2   1   1 -
+ENSAMXP00000012570     -          CMIL_MAD||CDII/858-891 -            6.4e-10   32.2   0.0   2.3e-09   30.4   0.0   2.0   1   0   0   1   1   1   1 -
+ENSLOCP00000015810     -          CMIL_MAD||CDII/858-891 -            1.5e-09   31.0   0.0   4.7e-09   29.4   0.0   2.0   1   0   0   1   1   1   1 -
+ENSXETP00000000565     -          CMIL_MAD||CDII/858-891 -            6.6e-09   28.9   2.7   1.3e-08   28.0   0.4   2.6   2   0   0   2   2   2   1 -
+ENSDARP00000101544     -          CMIL_MAD||CDII/858-891 -            1.3e-05   18.4   0.5   4.5e-05   16.7   0.1   2.2   2   0   0   2   2   1   1 -
+#
+# Program:         jackhmmer
+# Version:         3.1b2 (February 2015)
+# Pipeline mode:   SEARCH
+# Query file:      TromerBuBR1_CMI.fasta
+# Target file:     ../../../Sequences/Human_BUB1B_orthologues_2018_12_05.fa
+# Option settings: jackhmmer --tblout EnsemblBuBR1_CMI_jackhmmer.tblout --domtblout EnsemblBuBR1_CMI_jackhmmer.domtblout --qformat fasta --tformat fasta TromerBuBR1_CMI.fasta ../../../Sequences/Human_BUB1B_orthologues_2018_12_05.fa 
+# Current dir:     /media/axelle/Angel_backup/Dropbox/BuBR1/BuBR1_coevolution/Data/Domain_annotation/BuBR1/CMI
+# Date:            Thu Aug  8 09:53:09 2019
+# [ok]";
+
+    const PHMMER_FILE: &str = "#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+HBB_HUMAN            -          MYG_ESCGI            -            2.3e-11   30.3   0.1   2.5e-11   30.2   0.1   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          MYG_HORSE            -            5.1e-12   32.3   0.1   6.1e-12   32.1   0.1   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          MYG_PROGU            -            9.3e-13   34.6   0.0   1.1e-12   34.4   0.0   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          MYG_SAISC            -            7.4e-13   35.1   0.0     8e-13   35.0   0.0   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          HBB_LARRI            -            1.5e-70  222.2   0.1   1.6e-70  222.0   0.1   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          HBB1_VAREX           -              7e-67  210.6   0.2   7.7e-67  210.5   0.2   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          HBB2_XENTR           -            1.2e-52  163.9   0.1   1.4e-52  163.7   0.1   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          HBBL_RANCA           -            1.5e-57  180.0   0.1   1.7e-57  179.9   0.1   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+HBB_HUMAN            -          HBB2_TRICR           -            3.4e-46  143.0   0.0   3.7e-46  142.8   0.0   1.0   1   0   0   1   1   1   1 Human beta hemoglobin.
+#
+# Program:         phmmer
+# Version:         3.2 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      /var/lib/cwl/stgc72dd3bc-8891-4b83-83e7-215178692be8/globins45.fa
+# Target file:     /var/lib/cwl/stgf46f4fb0-f7ec-4fbf-b608-74ca6d8a20a0/HBB_HUMAN
+# Option settings: phmmer -o globins45.fa.phmmer_matches.out --tblout globins45.fa.phmmer_matches.tblout /var/lib/cwl/stgc72dd3bc-8891-4b83-83e7-215178692be8/globins45.fa /var/lib/cwl/stgf46f4fb0-f7ec-4fbf-b608-74ca6d8a20a0/HBB_HUMAN 
+# Current dir:     /tmp/cwl
+# Date:            Tue Jul 17 13:01:19 2018
+# [ok]";
+
+    const NHMMSCAN_FILE: &str = "# target name        accession  query name           accession  hmmfrom hmm to alifrom  ali to envfrom  env to  modlen strand   E-value  score  bias  description of target
+#------------------- ---------- -------------------- ---------- ------- ------- ------- ------- ------- ------- ------- ------ --------- ------ ----- ---------------------
+CLASSA_ARL           -          ARL-1                -                1     845       1     845       1     846     846    +    1.5e-275  909.7  88.2  -
+CLASSA_BLAZ          -          ARL-1                -                1     828       1     828       1     842     843    +    6.7e-108  355.9  83.7  -
+CLASSA_PC1           -          ARL-1                -                1     825       1     825       1     840     843    +    3.7e-104  343.6  81.8  -
+CLASSA_TLA           -          ARL-1                -                2     809       2     764       1     785     903    +     1.3e-10   34.5  67.0  -
+CLASSA_CEPA          -          ARL-1                -               25     468      13     441       2     461     900    +     1.6e-10   34.1  32.0  -
+CLASSD_LCR           -          ARL-1                -               14     642      26     714       5     735     783    +     1.3e-09   31.0  58.1  -
+CLASSA_PER           -          ARL-1                -               25     882      13     822       2     842     924    +     1.6e-09   30.7  73.1  -
+CLASSA_CFXA          -          ARL-1                -              322     869     256     770     235     791     963    +     2.8e-09   29.7  48.7  -
+#
+# Program:         hmmscan
+# Version:         3.2 (June 2018)
+# Pipeline mode:   SCAN
+# Query file:      example_gene_seqs.fasta
+# Target file:     nARGhmm/Total_95_families_nucleotide.hmm
+# Option settings: nhmmscan --tblout nhmmscan_output -E 1e-6 nARGhmm/Total_95_families_nucleotide.hmm example_gene_seqs.fasta 
+# Current dir:     /Volumes/DATA/Ph.D.Works/BETALACTAMSE_WORK_12-NOV-18/Beta-lactamase_NEW_WORK/Standalone_Version/blacfampred_standalone
+# Date:            Sat Jul 24 16:56:59 2021
+# [ok]";
+
+    const HMMSCAN_FILE: &str = "#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+ABC_membrane_2       PF06472.14 11LoS11_3_18_3       -              2e-74  250.4   5.3     2e-74  250.4   5.3   1.4   2   0   0   2   2   2   1 ABC transporter transmembrane region 2
+SbmA_BacA            PF05992.11 11LoS11_3_18_3       -            3.3e-41  141.7   9.4   4.4e-41  141.2   9.4   1.1   1   0   0   1   1   1   1 SbmA/BacA-like family
+ABC_tran             PF00005.26 11LoS11_3_18_3       -              6e-17   62.3   0.0   1.8e-16   60.8   0.0   1.8   1   1   0   1   1   1   1 ABC transporter
+AAA_29               PF13555.5  11LoS11_3_18_3       -            6.1e-06   25.8   0.5   2.1e-05   24.1   0.1   2.1   2   0   0   2   2   2   1 P-loop containing region of AAA domain
+ABC_membrane_2       PF06472.14 11LoS18_3_1_2        -            4.2e-87  292.0   2.1   5.3e-87  291.7   2.1   1.1   1   0   0   1   1   1   1 ABC transporter transmembrane region 2
+HisKA                PF00512.24 11LoS6_2_10_2        -            6.2e-07   29.3   0.3     2e-06   27.7   0.1   2.0   2   0   0   2   2   2   1 His Kinase A (phospho-acceptor) domain
+Esterase_phd         PF10503.8  11LoS7_1_2_1         -            3.9e-16   59.1   0.8   6.9e-16   58.3   0.7   1.5   1   1   0   1   1   1   1 Esterase PHB depolymerase
+Peptidase_S9         PF00326.20 11LoS7_1_2_1         -            3.5e-09   36.3   0.4   1.3e-07   31.3   0.2   2.4   1   1   1   2   2   2   1 Prolyl oligopeptidase family
+Esterase             PF00756.19 11LoS7_1_2_1         -            7.3e-06   25.7   0.0     1e-05   25.2   0.0   1.3   1   0   0   1   1   1   1 Putative esterase
+Abhydrolase_2        PF02230.15 11LoS7_1_2_1         -            1.8e-05   24.6   0.0   0.00012   21.8   0.0   2.0   1   1   0   1   1   1   1 Phospholipase/Carboxylesterase
+Abhydrolase_6        PF12697.6  11LoS7_1_2_1         -            2.1e-05   25.2   2.1     4e-05   24.2   2.1   1.5   1   0   0   1   1   1   1 Alpha/beta hydrolase family
+Ribonuc_L-PSP        PF01042.20 11LoS7_1_2_2         -            1.9e-23   82.6   0.6   2.3e-23   82.4   0.6   1.1   1   0   0   1   1   1   1 Endoribonuclease L-PSP
+ABC_membrane_2       PF06472.14 13LoS28_1_10_2       -            4.2e-87  292.0   2.1   5.3e-87  291.7   2.1   1.1   1   0   0   1   1   1   1 ABC transporter transmembrane region 2
+AAA_29               PF13555.5  CW1_7_2              -            3.2e-05   23.5   0.0   0.00011   21.8   0.0   1.9   1   0   0   1   1   1   1 P-loop containing region of AAA domain
+#
+# Program:         hmmscan
+# Version:         3.1b2 (February 2015)
+# Pipeline mode:   SCAN
+# Query file:      orf.out.txt
+# Target file:     /srv/projects/db/pfam/2017-06-11-Pfam31.0/Pfam-A.hmm
+# Option settings: hmmscan --tblout hmmscan.tblout.txt -E 0.0001 --cpu 4 /srv/projects/db/pfam/2017-06-11-Pfam31.0/Pfam-A.hmm orf.out.txt 
+# Current dir:     /rhome/arahm010/project220/src
+# Date:            Fri Dec 14 01:07:39 2018
+# [ok]";
+
+    const HMMSEARCH_FILE: &str = "#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+sp|P29082|SOR_ACIAM  -          SOR                  PF07682.13  1.5e-152  492.8   0.8  1.7e-152  492.6   0.8   1.0   1   0   0   1   1   1   1 Sulfur oxygenase/reductase OS=Acidianus ambivalens OX=2283 GN=sor PE=1 SV=3
+#
+# Program:         hmmsearch
+# Version:         3.2.1 (June 2018)
+# Pipeline mode:   SEARCH
+# Query file:      SOR.hmm
+# Target file:     sor.faa
+# Option settings: hmmsearch --tblout sor.sor.tblout SOR.hmm sor.faa 
+# Current dir:     /Users/arkadiygarber/MagicLamp/hmms/litho
+# Date:            Mon May 24 13:53:50 2021
+# [ok]";
+
     #[test]
     fn test_whole_file() {
         let reader = Reader::from_reader(b(NHMMER_FILE));
@@ -97,5 +210,29 @@ SUPER_2              -          TR                   -                2     100 
         let meta = r.meta();
         assert_eq!(meta.program(), Program::Nhmmer);
         assert_eq!(meta.version(), "3.4 (Aug 2023)".to_string());
+    }
+
+    #[test]
+    fn test_jackhmmer_meta() {
+        let reader = Reader::from_reader(b(JACKHMMER_FILE));
+        let r = reader.unwrap();
+        let meta = r.meta();
+        assert_eq!(meta.program(), Program::Jackhmmer);
+        assert_eq!(meta.version(), "3.1b2 (February 2015)".to_string());
+    }
+
+    #[test]
+    fn test_jackhmmer_records() {
+        let reader = Reader::from_reader(b(JACKHMMER_FILE));
+        let mut r = reader.unwrap();
+        let mut records = r.records();
+
+        // first record
+        let first = records.next().unwrap().unwrap();
+        // and the 10th
+        let tenth = records.nth(9).unwrap().unwrap();
+
+        assert_eq!(first.target_name(), "ENSTSYP00000010994".to_string());
+        assert_eq!(tenth.target_name(), "ENSXETP00000000565".to_string());
     }
 }
