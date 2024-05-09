@@ -18,18 +18,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    // the Reader::from_path is probably the most convenient API.
     let reader = hmm_tblout::Reader::from_path(args[1].clone())?;
 
-    // I'm iterating over the owned records here, but you can borrow
-    // too using `.records()`.
     for record in reader.into_records() {
         let r = record?;
-        // there is a function to retrieve each field.
         let tname = r.target_name();
-        let strand = r.strand();
-        let alifrom = r.ali_from();
-        let alito = r.ali_to();
+        let strand = r.strand().unwrap();
+        let alifrom = r.ali_from().unwrap();
+        let alito = r.ali_to().unwrap();
 
         println!("{}\t{}\t{}\t{}", tname, strand, alifrom, alito);
     }
@@ -44,4 +40,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 May handle these in the future. Or feel free to contribute!
 
 - Does not handle the description column, as this may contain spaces. 
-- Metadata ignored.
