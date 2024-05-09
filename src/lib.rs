@@ -6,7 +6,6 @@ the `--tblout` flag to the HMMER3 program.
 # Example
 
 ```no_run
-use hmm_tblout;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get the command line args, only parse the
@@ -22,9 +21,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for record in reader.into_records() {
         let r = record?;
         let tname = r.target_name();
-        let strand = r.strand();
-        let alifrom = r.ali_from();
-        let alito = r.ali_to();
+        let strand = r.strand().unwrap();
+        let alifrom = r.ali_from().unwrap();
+        let alito = r.ali_to().unwrap();
 
         println!("{}\t{}\t{}\t{}", tname, strand, alifrom, alito);
     }
