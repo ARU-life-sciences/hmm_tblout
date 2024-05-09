@@ -11,18 +11,21 @@ use std::{
     str::FromStr,
 };
 
+/// A reader over the metadata of a HMM tblout file.
 pub struct MetaReader<R> {
     rdr: io::BufReader<R>,
     line: u64,
 }
 
 impl<R: io::Read> MetaReader<R> {
+    /// Constructor for `MetaReader`.
     pub fn new(rdr: R) -> MetaReader<R> {
         MetaReader {
             rdr: io::BufReader::new(rdr),
             line: 0,
         }
     }
+    /// Read the metadata from the input reader.
     fn read_meta(&mut self) -> Result<Meta> {
         // read the metadata into the meta struct
         // we skip the first three #'s that we come across
@@ -88,19 +91,27 @@ impl<R: io::Read> MetaReader<R> {
     }
 }
 
+/// A reader over the records of a HMM tblout file.
 pub struct Reader<R> {
+    /// The underlying reader.
     rdr: io::BufReader<R>,
+    /// The current line number.
     line: u64,
+    /// The metadata from the first pass.
     meta: Meta,
 }
 
 impl Reader<File> {
+    /// Construct a new reader from a file path.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Reader<File>> {
         let mut metareader = MetaReader::new(File::open(path.as_ref())?);
         let meta = metareader.read_meta()?;
 
         Ok(Reader::new(File::open(path)?, meta))
     }
+
+    /// Construct a new reader from anything that implements `io::Read`.
+    /// and clone.
     pub fn from_reader<R: io::Read + Clone>(rdr: R) -> Result<Reader<R>> {
         let mut metareader = MetaReader::new(rdr.clone());
         let meta = metareader.read_meta()?;
@@ -109,17 +120,191 @@ impl Reader<File> {
     }
 }
 
+/// An iterator over the records of a refer file.
 pub enum RecordsIter<'a, R> {
+    /// An iterator over DNA records.
     Dna(DNARecordsIter<'a, R>),
+    /// An iterator over protein records.
     Protein(ProteinRecordsIter<'a, R>),
 }
 
+impl<'r, R: io::Read> Iterator for RecordsIter<'r, R> {
+    type Item = Result<Record>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            RecordsIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
+            RecordsIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
+        }
+    }
+}
+
+/// A borrowed iterator over the records of a refer file.
+pub struct DNARecordsIter<'r, R: 'r> {
+    /// The underlying reader
+    rdr: &'r mut Reader<R>,
+}
+
+impl<'r, R: io::Read> Iterator for DNARecordsIter<'r, R> {
+    type Item = Result<DNARecord>;
+
+    fn next(&mut self) -> Option<Result<DNARecord>> {
+        match self.rdr.read_dna_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+/// A borrowed iterator over the records of a refer file.
+pub struct ProteinRecordsIter<'r, R: 'r> {
+    /// The underlying reader
+    rdr: &'r mut Reader<R>,
+}
+
+impl<'r, R: io::Read> Iterator for ProteinRecordsIter<'r, R> {
+    type Item = Result<ProteinRecord>;
+
+    fn next(&mut self) -> Option<Result<ProteinRecord>> {
+        match self.rdr.read_protein_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+impl<'r, R: io::Read> RecordsIter<'r, R> {
+    fn new(rdr: &'r mut Reader<R>, program: Program) -> RecordsIter<'r, R> {
+        match program {
+            Program::Nhmmer | Program::Nhmmscan => RecordsIter::Dna(DNARecordsIter { rdr }),
+            Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
+                RecordsIter::Protein(ProteinRecordsIter { rdr })
+            }
+            Program::None => unreachable!(),
+        }
+    }
+    /// Return a reference to the underlying reader.
+    pub fn reader(&self) -> &Reader<R> {
+        match self {
+            RecordsIter::Dna(r) => r.rdr,
+            RecordsIter::Protein(r) => r.rdr,
+        }
+    }
+
+    /// Return a mutable reference to the underlying reader.
+    pub fn reader_mut(&mut self) -> &mut Reader<R> {
+        match self {
+            RecordsIter::Dna(r) => r.rdr,
+            RecordsIter::Protein(r) => r.rdr,
+        }
+    }
+}
+
+/// An owned iterator over the records of a refer file.
 pub enum RecordsIntoIter<R> {
+    /// An iterator over DNA records.
     Dna(DNARecordsIntoIter<R>),
+    /// An iterator over protein records.
     Protein(ProteinRecordsIntoIter<R>),
 }
 
+impl<R: io::Read> Iterator for RecordsIntoIter<R> {
+    type Item = Result<Record>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            RecordsIntoIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
+            RecordsIntoIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
+        }
+    }
+}
+/// An owned iterator over the records of a refer file.
+pub struct DNARecordsIntoIter<R> {
+    /// The underlying reader.
+    rdr: Reader<R>,
+}
+
+impl<R: io::Read> RecordsIntoIter<R> {
+    fn new(rdr: Reader<R>, program: Program) -> RecordsIntoIter<R> {
+        match program {
+            Program::Nhmmer | Program::Nhmmscan => RecordsIntoIter::Dna(DNARecordsIntoIter { rdr }),
+            Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
+                RecordsIntoIter::Protein(ProteinRecordsIntoIter { rdr })
+            }
+            Program::None => unreachable!(),
+        }
+    }
+    /// Return a reference to the underlying reader.
+    pub fn reader(&self) -> &Reader<R> {
+        match self {
+            RecordsIntoIter::Dna(r) => &r.rdr,
+            RecordsIntoIter::Protein(r) => &r.rdr,
+        }
+    }
+
+    /// Return a mutable reference to the underlying reader.
+    pub fn reader_mut(&mut self) -> &mut Reader<R> {
+        match self {
+            RecordsIntoIter::Dna(r) => &mut r.rdr,
+            RecordsIntoIter::Protein(r) => &mut r.rdr,
+        }
+    }
+
+    /// Drop this iterator and return the underlying reader.
+    pub fn into_reader(self) -> Reader<R> {
+        match self {
+            RecordsIntoIter::Dna(r) => r.rdr,
+            RecordsIntoIter::Protein(r) => r.rdr,
+        }
+    }
+}
+
+impl<R: io::Read> Iterator for DNARecordsIntoIter<R> {
+    type Item = Result<DNARecord>;
+
+    fn next(&mut self) -> Option<Result<DNARecord>> {
+        match self.rdr.read_dna_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+/// An owned iterator over the records of a refer file.
+pub struct ProteinRecordsIntoIter<R> {
+    /// The underlying reader.
+    rdr: Reader<R>,
+}
+
+impl<R: io::Read> Iterator for ProteinRecordsIntoIter<R> {
+    type Item = Result<ProteinRecord>;
+
+    fn next(&mut self) -> Option<Result<ProteinRecord>> {
+        match self.rdr.read_protein_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
 impl<R: io::Read> Reader<R> {
+    /// Construct a new reader from a reader and metadata.
     pub fn new(rdr: R, meta: Meta) -> Reader<R> {
         Reader {
             rdr: io::BufReader::new(rdr),
@@ -203,6 +388,7 @@ impl<R: io::Read> Reader<R> {
         }
     }
 
+    /// Read a single record from an input reader as a protein record.
     fn read_protein_record(&mut self) -> Result<Option<ProteinRecord>> {
         // for this function, we read a single line and parse
         // on whitespace, returning a record. We skip lines
@@ -262,173 +448,6 @@ impl<R: io::Read> Reader<R> {
                 }
                 Err(e) => return Err(Error::new(ErrorKind::Io(e))),
             }
-        }
-    }
-}
-
-impl<'r, R: io::Read> Iterator for RecordsIter<'r, R> {
-    type Item = Result<Record>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            RecordsIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
-            RecordsIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
-        }
-    }
-}
-
-impl<R: io::Read> Iterator for RecordsIntoIter<R> {
-    type Item = Result<Record>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            RecordsIntoIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
-            RecordsIntoIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
-        }
-    }
-}
-
-/// A borrowed iterator over the records of a refer file.
-pub struct DNARecordsIter<'r, R: 'r> {
-    /// The underlying reader
-    rdr: &'r mut Reader<R>,
-}
-
-impl<'r, R: io::Read> RecordsIter<'r, R> {
-    fn new(rdr: &'r mut Reader<R>, program: Program) -> RecordsIter<'r, R> {
-        match program {
-            Program::Nhmmer | Program::Nhmmscan => RecordsIter::Dna(DNARecordsIter { rdr }),
-            Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
-                RecordsIter::Protein(ProteinRecordsIter { rdr })
-            }
-            Program::None => unreachable!(),
-        }
-    }
-    /// Return a reference to the underlying reader.
-    pub fn reader(&self) -> &Reader<R> {
-        match self {
-            RecordsIter::Dna(r) => r.rdr,
-            RecordsIter::Protein(r) => r.rdr,
-        }
-    }
-
-    /// Return a mutable reference to the underlying reader.
-    pub fn reader_mut(&mut self) -> &mut Reader<R> {
-        match self {
-            RecordsIter::Dna(r) => r.rdr,
-            RecordsIter::Protein(r) => r.rdr,
-        }
-    }
-}
-
-impl<'r, R: io::Read> Iterator for DNARecordsIter<'r, R> {
-    type Item = Result<DNARecord>;
-
-    fn next(&mut self) -> Option<Result<DNARecord>> {
-        match self.rdr.read_dna_record() {
-            Ok(Some(r)) => {
-                self.rdr.line += 1;
-                Some(Ok(r))
-            }
-            Ok(None) => None,
-            Err(e) => Some(Err(e)),
-        }
-    }
-}
-
-/// An owned iterator over the records of a refer file.
-pub struct DNARecordsIntoIter<R> {
-    /// The underlying reader.
-    rdr: Reader<R>,
-}
-
-impl<R: io::Read> RecordsIntoIter<R> {
-    fn new(rdr: Reader<R>, program: Program) -> RecordsIntoIter<R> {
-        match program {
-            Program::Nhmmer | Program::Nhmmscan => RecordsIntoIter::Dna(DNARecordsIntoIter { rdr }),
-            Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
-                RecordsIntoIter::Protein(ProteinRecordsIntoIter { rdr })
-            }
-            Program::None => unreachable!(),
-        }
-    }
-    /// Return a reference to the underlying reader.
-    pub fn reader(&self) -> &Reader<R> {
-        match self {
-            RecordsIntoIter::Dna(r) => &r.rdr,
-            RecordsIntoIter::Protein(r) => &r.rdr,
-        }
-    }
-
-    /// Return a mutable reference to the underlying reader.
-    pub fn reader_mut(&mut self) -> &mut Reader<R> {
-        match self {
-            RecordsIntoIter::Dna(r) => &mut r.rdr,
-            RecordsIntoIter::Protein(r) => &mut r.rdr,
-        }
-    }
-
-    /// Drop this iterator and return the underlying reader.
-    pub fn into_reader(self) -> Reader<R> {
-        match self {
-            RecordsIntoIter::Dna(r) => r.rdr,
-            RecordsIntoIter::Protein(r) => r.rdr,
-        }
-    }
-}
-
-impl<R: io::Read> Iterator for DNARecordsIntoIter<R> {
-    type Item = Result<DNARecord>;
-
-    fn next(&mut self) -> Option<Result<DNARecord>> {
-        match self.rdr.read_dna_record() {
-            Ok(Some(r)) => {
-                self.rdr.line += 1;
-                Some(Ok(r))
-            }
-            Ok(None) => None,
-            Err(e) => Some(Err(e)),
-        }
-    }
-}
-/// A borrowed iterator over the records of a refer file.
-pub struct ProteinRecordsIter<'r, R: 'r> {
-    /// The underlying reader
-    rdr: &'r mut Reader<R>,
-}
-
-impl<'r, R: io::Read> Iterator for ProteinRecordsIter<'r, R> {
-    type Item = Result<ProteinRecord>;
-
-    fn next(&mut self) -> Option<Result<ProteinRecord>> {
-        match self.rdr.read_protein_record() {
-            Ok(Some(r)) => {
-                self.rdr.line += 1;
-                Some(Ok(r))
-            }
-            Ok(None) => None,
-            Err(e) => Some(Err(e)),
-        }
-    }
-}
-
-/// An owned iterator over the records of a refer file.
-pub struct ProteinRecordsIntoIter<R> {
-    /// The underlying reader.
-    rdr: Reader<R>,
-}
-
-impl<R: io::Read> Iterator for ProteinRecordsIntoIter<R> {
-    type Item = Result<ProteinRecord>;
-
-    fn next(&mut self) -> Option<Result<ProteinRecord>> {
-        match self.rdr.read_protein_record() {
-            Ok(Some(r)) => {
-                self.rdr.line += 1;
-                Some(Ok(r))
-            }
-            Ok(None) => None,
-            Err(e) => Some(Err(e)),
         }
     }
 }
