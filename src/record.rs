@@ -5,14 +5,19 @@ use std::{
     str::FromStr,
 };
 
+/// A record in a HMMER tblout file. Can either be a protein
+/// record or a DNA record.
 pub enum Record {
+    /// A protein record.
     Protein(ProteinRecord),
+    /// A DNA record.
     Dna(DNARecord),
 }
 
 /// A record which could either be from a protein search or a
 /// DNA search. As such, some methods will return `None` if the
-/// record is from a protein search, and vice versa.
+/// record is from a protein search, and vice versa. The descriptions
+/// from the HMMER user guide are used here (v3.4 August 2023).
 impl Record {
     /// The name of the target sequence or profile.
     pub fn target_name(&self) -> String {
@@ -57,7 +62,8 @@ impl Record {
         }
     }
     /// The score (in bits) for this target/query comparison. It includes
-    /// the biased-composition correction (the “null2” model).
+    /// the biased-composition correction (the “null2” model). Protein (like)
+    /// records only.
     pub fn score_full(&self) -> Option<f32> {
         match self {
             Record::Protein(record) => Some(record.score_full()),
@@ -161,6 +167,7 @@ impl Record {
 
     /// The total number of envelopes defined, both by single envelope regions
     /// and by stochastic traceback clustering into one or more envelopes per region.
+    /// Protein (like) records only.
     pub fn env(&self) -> Option<i32> {
         match self {
             Record::Protein(record) => Some(record.env()),
@@ -262,7 +269,7 @@ impl Record {
         }
     }
     /// The expectation value (statistical significance) of the target
-    /// as above.
+    /// as above. DNA records only.
     pub fn e_value(&self) -> Option<f32> {
         match self {
             Record::Protein(_) => None,
@@ -272,14 +279,22 @@ impl Record {
 }
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Copy)]
+/// The program used to generate the output.
 pub enum Program {
     #[default]
+    /// The program is unknown. This is an error.
     None,
-    Nhmmer,    // test done
-    Nhmmscan,  // test done
+    /// The program used was `nhmmer`.
+    Nhmmer, // test done
+    /// The program used was `nhmmscan`.
+    Nhmmscan, // test done
+    /// The program used was `jackhmmer`.
     Jackhmmer, // test done
-    Hmmscan,   // test done
+    /// The program used was `hmmscan`.
+    Hmmscan, // test done
+    /// The program used was `hmmsearch`.
     Hmmsearch,
+    /// The program used was `phmmer`.
     Phmmer, // test done
 }
 
@@ -303,94 +318,103 @@ impl FromStr for Program {
 }
 
 #[derive(Default)]
+/// Metadata about the search that produced the HMMER tblout file.
 pub struct Meta {
+    /// The program used to generate the output.
     program: Program,
+    /// The version of the program used to generate the output.
     version: String,
+    /// The pipeline mode used to generate the output.
     pipeline_mode: String,
+    /// The path to the query file.
     query_file: PathBuf,
+    /// The path to the target file.
     target_file: PathBuf,
+    /// The options used to run the program.
     options: String,
+    /// The current directory.
     current_dir: PathBuf,
+    /// The date the program was run.
     date: String,
 }
 
 impl Meta {
-    /// Get the program information
+    /// Get the program information.
     pub fn program(&self) -> Program {
         self.program
     }
 
-    /// Set program
+    /// Set program.
     pub fn set_program(&mut self, program: Program) {
         self.program = program;
     }
 
-    /// Get the version
+    /// Get the version.
     pub fn version(&self) -> String {
         self.version.clone()
     }
 
-    /// Set version
+    /// Set version.
     pub fn set_version(&mut self, version: String) {
         self.version = version;
     }
 
-    /// Get the pipeline mode
+    /// Get the pipeline mode.
     pub fn pipeline_mode(&self) -> String {
         self.pipeline_mode.clone()
     }
 
-    /// Set pipeline mode
+    /// Set pipeline mode.
     pub fn set_pipeline_mode(&mut self, pipeline_mode: String) {
         self.pipeline_mode = pipeline_mode;
     }
 
-    /// Get the path to the query file
+    /// Get the path to the query file.
     pub fn query_file(&self) -> PathBuf {
         self.query_file.clone()
     }
 
-    /// Set path
+    /// Set path.
     pub fn set_query_file(&mut self, query_file: PathBuf) {
         self.query_file = query_file;
     }
 
-    /// Get the path to the target file
+    /// Get the path to the target file.
     pub fn target_file(&self) -> PathBuf {
         self.target_file.clone()
     }
 
-    /// Set target file
+    /// Set target file.
     pub fn set_target_file(&mut self, target_file: PathBuf) {
         self.target_file = target_file;
     }
 
-    /// Get the options used to run the program
+    /// Get the options used to run the program.
     pub fn options(&self) -> String {
         self.options.clone()
     }
 
-    /// Set options
+    /// Set options.
     pub fn set_options(&mut self, options: String) {
         self.options = options;
     }
 
-    /// Get the current directory
+    /// Get the current directory.
     pub fn current_dir(&self) -> PathBuf {
         self.current_dir.clone()
     }
 
-    /// Set current directory
+    /// Set current directory.
     pub fn set_current_dir(&mut self, current_dir: PathBuf) {
         self.current_dir = current_dir;
     }
 
-    /// Get the date the program was run
+    /// Get the date the program was run.
     pub fn date(&self) -> String {
         self.date.clone()
     }
 
-    /// Set the date
+    /// Set the date.
     pub fn set_date(&mut self, date: String) {
         self.date = date;
     }

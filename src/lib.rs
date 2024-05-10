@@ -6,6 +6,7 @@ the `--tblout` flag to the HMMER3 program.
 # Example
 
 ```no_run
+use hmm_tblout;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // get the command line args, only parse the
@@ -37,10 +38,13 @@ mod error;
 mod reader;
 mod record;
 
+// don't want these in the public API.
+use record::{DNARecord, ProteinRecord};
+
 pub use crate::{
     error::{Error, ErrorKind, Result},
     reader::{Reader, RecordsIntoIter, RecordsIter},
-    record::{DNARecord, Meta, Program, ProteinRecord},
+    record::{Meta, Program, Record, Strand},
 };
 
 #[cfg(test)]
@@ -233,5 +237,24 @@ sp|P29082|SOR_ACIAM  -          SOR                  PF07682.13  1.5e-152  492.8
 
         assert_eq!(first.target_name(), "ENSTSYP00000010994".to_string());
         assert_eq!(tenth.target_name(), "ENSXETP00000000565".to_string());
+    }
+
+    #[test]
+    fn test_phmmer_records() {
+        let reader = Reader::from_reader(b(PHMMER_FILE));
+        let mut r = reader.unwrap();
+        let mut records = r.records();
+
+        // first record
+        let first = records.next().unwrap().unwrap();
+        // and the 10th
+        let third = records.nth(1).unwrap().unwrap();
+
+        assert_eq!(first.target_name(), "HBB_HUMAN".to_string());
+        assert_eq!(third.target_name(), "HBB_HUMAN".to_string());
+
+        // and another field
+        assert_eq!(first.e_value_full().unwrap(), 2.3e-11);
+        assert_eq!(third.e_value_full().unwrap(), 9.3e-13);
     }
 }

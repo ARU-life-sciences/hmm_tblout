@@ -110,7 +110,7 @@ impl Reader<File> {
         Ok(Reader::new(File::open(path)?, meta))
     }
 
-    /// Construct a new reader from anything that implements `io::Read`.
+    /// Construct a new reader from anything that implements `io::Read`
     /// and clone.
     pub fn from_reader<R: io::Read + Clone>(rdr: R) -> Result<Reader<R>> {
         let mut metareader = MetaReader::new(rdr.clone());
@@ -313,7 +313,7 @@ impl<R: io::Read> Reader<R> {
         }
     }
 
-    /// Return the metadata from the first pass
+    /// Return the metadata from the first pass.
     pub fn meta(&self) -> &Meta {
         &self.meta
     }

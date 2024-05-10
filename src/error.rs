@@ -5,10 +5,10 @@ use std::{
     result::Result as StdResult,
 };
 
-/// A type alias for `Result<T, trfr::Error>`.
+/// A type alias for `Result<T, hmm_tblout::Error>`.
 pub type Result<T> = StdResult<T, Error>;
 
-/// Error when parsing trfr text.
+/// Error when parsing HMMER tblout text.
 #[derive(Debug)]
 pub struct Error(Box<ErrorKind>);
 
