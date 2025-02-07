@@ -1,5 +1,5 @@
 use crate::{
-    record::{Meta, Program, Record, Strand},
+    record::{Header, Meta, Program, Record, Strand},
     DNARecord, Error, ErrorKind, ProteinRecord, Result,
 };
 
@@ -10,6 +10,80 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
+
+/// A reader over the header of a HMM tblout file.
+pub struct HeaderReader<R> {
+    rdr: io::BufReader<R>,
+    line: u64,
+}
+
+impl<R: io::Read> HeaderReader<R> {
+    pub fn new(rdr: R) -> HeaderReader<R> {
+        HeaderReader {
+            rdr: io::BufReader::new(rdr),
+            line: 0,
+        }
+    }
+
+    fn read_header(&mut self) -> Result<Header> {
+        let mut header = Header::default();
+
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match self.rdr.read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {
+                    self.line += 1;
+                    let mut hash_counter = 1;
+
+                    if line.starts_with('#') {
+                        // probably more checks here than necessary.
+                        if line.contains("full sequence") {
+                            header.set_protein_only(line.clone());
+                            continue;
+                        }
+
+                        if line.contains("target name") {
+                            header.set_columns(line.clone());
+                            continue;
+                        }
+
+                        // Check here that the header only contains dashes
+                        fn remove_whitespace(s: &str) -> String {
+                            s.chars().filter(|c| !c.is_whitespace()).collect()
+                        }
+
+                        fn is_single_char(s: &str) -> bool {
+                            if let Some(first) = s.chars().next() {
+                                s.chars().all(|c| c == first)
+                            } else {
+                                false // Empty string case
+                            }
+                        }
+
+                        let dashes_line_prefix_removed = line.strip_prefix('#').unwrap();
+                        let trimmed_line = remove_whitespace(dashes_line_prefix_removed);
+
+                        if is_single_char(&trimmed_line) {
+                            header.set_dashes(line.clone());
+                            continue;
+                        }
+
+                        hash_counter += 1;
+                    }
+
+                    if hash_counter > 3 {
+                        break;
+                    }
+                }
+                Err(e) => return Err(Error::new(ErrorKind::Io(e))),
+            }
+        }
+
+        Ok(header)
+    }
+}
 
 /// A reader over the metadata of a HMM tblout file.
 pub struct MetaReader<R> {
@@ -99,24 +173,32 @@ pub struct Reader<R> {
     line: u64,
     /// The metadata from the first pass.
     meta: Meta,
+    /// The header from the first pass.
+    header: Header,
 }
 
 impl Reader<File> {
     /// Construct a new reader from a file path.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Reader<File>> {
+        let mut headerreader = HeaderReader::new(File::open(path.as_ref())?);
+        let header = headerreader.read_header()?;
+
         let mut metareader = MetaReader::new(File::open(path.as_ref())?);
         let meta = metareader.read_meta()?;
 
-        Ok(Reader::new(File::open(path)?, meta))
+        Ok(Reader::new(File::open(path)?, header, meta))
     }
 
     /// Construct a new reader from anything that implements `io::Read`
     /// and clone.
     pub fn from_reader<R: io::Read + Clone>(rdr: R) -> Result<Reader<R>> {
+        let mut headerreader = HeaderReader::new(rdr.clone());
+        let header = headerreader.read_header()?;
+
         let mut metareader = MetaReader::new(rdr.clone());
         let meta = metareader.read_meta()?;
 
-        Ok(Reader::new(rdr, meta))
+        Ok(Reader::new(rdr, header, meta))
     }
 }
 
@@ -305,12 +387,18 @@ impl<R: io::Read> Iterator for ProteinRecordsIntoIter<R> {
 
 impl<R: io::Read> Reader<R> {
     /// Construct a new reader from a reader and metadata.
-    pub fn new(rdr: R, meta: Meta) -> Reader<R> {
+    pub fn new(rdr: R, header: Header, meta: Meta) -> Reader<R> {
         Reader {
             rdr: io::BufReader::new(rdr),
             line: 0,
+            header,
             meta,
         }
+    }
+
+    /// Return the header from the first pass.
+    pub fn header(&self) -> &Header {
+        &self.header
     }
 
     /// Return the metadata from the first pass.
@@ -335,6 +423,8 @@ impl<R: io::Read> Reader<R> {
         // on whitespace, returning a record. We skip lines
         // starting with a comment character '#'.
         let mut line = String::new();
+        let col_sizes = self.header.calculate_dashes();
+
         loop {
             line.clear();
             match self.rdr.read_line(&mut line) {
@@ -361,7 +451,8 @@ impl<R: io::Read> Reader<R> {
                     let e_value = l_vec[12].parse::<f32>()?;
                     let score = l_vec[13].parse::<f32>()?;
                     let bias = l_vec[14].parse::<f32>()?;
-                    // note we omit description column
+
+                    let description = l_vec[15..].join(" ");
 
                     let record = DNARecord::new(
                         target_name,
@@ -379,6 +470,8 @@ impl<R: io::Read> Reader<R> {
                         e_value,
                         score,
                         bias,
+                        description,
+                        col_sizes,
                     );
 
                     return Ok(Some(record));
@@ -394,6 +487,7 @@ impl<R: io::Read> Reader<R> {
         // on whitespace, returning a record. We skip lines
         // starting with a comment character '#'.
         let mut line = String::new();
+        let col_sizes = self.header.calculate_dashes();
         loop {
             line.clear();
             match self.rdr.read_line(&mut line) {
@@ -423,6 +517,9 @@ impl<R: io::Read> Reader<R> {
                     let rep = l_vec[16].parse::<i32>()?;
                     let inc = l_vec[17].parse::<i32>()?;
 
+                    // description is all the remainder of the line as free text
+                    let description = l_vec[18..].join(" ");
+
                     let record = ProteinRecord::new(
                         target_name,
                         target_accession,
@@ -442,6 +539,8 @@ impl<R: io::Read> Reader<R> {
                         dom,
                         rep,
                         inc,
+                        description,
+                        col_sizes,
                     );
 
                     return Ok(Some(record));

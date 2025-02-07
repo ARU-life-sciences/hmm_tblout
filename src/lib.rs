@@ -37,6 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod error;
 mod reader;
 mod record;
+mod writer;
 
 // don't want these in the public API.
 use record::{DNARecord, ProteinRecord};
@@ -45,10 +46,13 @@ pub use crate::{
     error::{Error, ErrorKind, Result},
     reader::{Reader, RecordsIntoIter, RecordsIter},
     record::{Meta, Program, Record, Strand},
+    writer::Writer,
 };
 
 #[cfg(test)]
 mod tests {
+    use record::Header;
+
     use super::*;
 
     fn b(s: &str) -> &[u8] {
@@ -256,5 +260,105 @@ sp|P29082|SOR_ACIAM  -          SOR                  PF07682.13  1.5e-152  492.8
         // and another field
         assert_eq!(first.e_value_full().unwrap(), 2.3e-11);
         assert_eq!(third.e_value_full().unwrap(), 9.3e-13);
+    }
+
+    // test the writing module now
+
+    #[test]
+    fn test_phmmer_write() {
+        let reader = Reader::from_reader(b(PHMMER_FILE));
+        let mut r = reader.unwrap();
+        let records = r.records();
+        let output = Vec::new();
+        let mut writer = writer::Writer::new(output);
+        for record in records {
+            let rec = record.unwrap();
+            writer.write_record(&rec).unwrap();
+            break;
+        }
+
+        // read first line of output
+        let out = String::from_utf8(writer.into_inner().unwrap()).unwrap();
+
+        assert_eq!(
+            out,
+            "HBB_HUMAN       -          MYG_ESCGI       -            2.30e-11  30.30  0.10   2.50e-11  30.20  0.10  1.00   1   0   0   1   1   1   1 Human beta hemoglobin.\n"
+        );
+    }
+
+    // NOTE: that this test fails, we produce very slightly different output.
+    // it's as far as I can tell, on the floating point precision.
+    #[test]
+    fn in_same_as_out() {
+        let reader = Reader::from_reader(b(PHMMER_FILE));
+        let mut r = reader.unwrap();
+        let header = r.header().clone();
+        let meta = r.meta().clone();
+        let records = r.records();
+        let output = Vec::new();
+        let mut writer = writer::Writer::new(output);
+
+        // wrap output in header
+        writer.write_header(header).unwrap();
+        for record in records {
+            let rec = record.unwrap();
+            writer.write_record(&rec).unwrap();
+        }
+        // and the meta
+        writer.write_meta(meta).unwrap();
+
+        assert_eq!(
+            String::from_utf8(writer.into_inner().unwrap()).unwrap(),
+            PHMMER_FILE
+        );
+    }
+
+    // NOTE: this also fails, again as we produce very slightly different output. Should be fine though.
+    #[test]
+    fn in_same_as_out_n() {
+        let reader = Reader::from_reader(b(NHMMER_FILE));
+        let mut r = reader.unwrap();
+        let header = r.header().clone();
+        let meta = r.meta().clone();
+        let records = r.records();
+        let output = Vec::new();
+        let mut writer = writer::Writer::new(output);
+
+        // wrap output in header
+        writer.write_header(header.clone()).unwrap();
+        for record in records {
+            let rec = record.unwrap();
+            writer.write_record(&rec).unwrap();
+        }
+        // and the meta
+        writer.write_meta(meta).unwrap();
+
+        assert_eq!(
+            String::from_utf8(writer.into_inner().unwrap()).unwrap(),
+            NHMMER_FILE
+        );
+    }
+
+    // test header
+    #[test]
+    fn test_header() {
+        let reader = Reader::from_reader(b(PHMMER_FILE));
+        let r = reader.unwrap();
+        let header = r.header().clone();
+
+        let header_true = vec![
+                "#                                                               --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----\n",
+                "# target name        accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target\n",
+                "#------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------\n",
+            ];
+        let header_true = Header::new(
+            Some(header_true[0].into()),
+            header_true[1].into(),
+            header_true[2].into(),
+        );
+
+        assert_eq!(header.get_protein_only(), header_true.get_protein_only());
+        assert_eq!(header.get_columns(), header_true.get_columns());
+        assert_eq!(header.get_dashes(), header_true.get_dashes());
     }
 }

@@ -317,7 +317,140 @@ impl FromStr for Program {
     }
 }
 
-#[derive(Default)]
+impl Display for Program {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let inner = match self {
+            Program::Nhmmer => "nhmmer",
+            Program::Nhmmscan => "nhmmscan",
+            Program::Jackhmmer => "jackhmmer",
+            Program::Hmmscan => "hmmscan",
+            Program::Hmmsearch => "hmmsearch",
+            Program::Phmmer => "phmmer",
+            // FIXME: make this error better.
+            Program::None => return Err(std::fmt::Error),
+        };
+        write!(f, "{}", inner)
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct Header {
+    protein_only: Option<String>,
+    columns: String,
+    dashes: String,
+}
+
+impl Display for Header {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn trim_newline(s: &mut String) {
+            if s.ends_with('\n') {
+                s.pop();
+                if s.ends_with('\r') {
+                    s.pop();
+                }
+            }
+        }
+        // if the protein_only field is Some, print it.
+        if let Some(mut p) = self.protein_only.clone() {
+            trim_newline(&mut p);
+            writeln!(f, "{}", p)?;
+        }
+
+        let mut cols = self.columns.clone();
+        let mut dashes = self.dashes.clone();
+        trim_newline(&mut cols);
+        trim_newline(&mut dashes);
+
+        writeln!(f, "{}", cols)?;
+        // should this also be a newline?
+        write!(f, "{}", dashes)
+    }
+}
+
+impl Header {
+    pub fn new(protein_only: Option<String>, columns: String, dashes: String) -> Self {
+        Header {
+            protein_only,
+            columns,
+            dashes,
+        }
+    }
+    // calculate a vector of column widths
+    pub fn calculate_dashes(&self) -> Vec<usize> {
+        let mut lengths = Vec::new();
+        let mut current_length = 0;
+        let mut space_count = 0;
+        let mut in_dash_run = false;
+
+        for c in self.dashes.chars() {
+            match c {
+                '-' | '#' => {
+                    if space_count > 1 {
+                        current_length += space_count - 1; // Include (n-1) spaces
+                    }
+                    space_count = 0;
+                    current_length += 1;
+                    in_dash_run = true;
+                }
+                ' ' => {
+                    if in_dash_run {
+                        if space_count == 0 {
+                            lengths.push(current_length); // Push previous dash run
+                            current_length = 0;
+                        }
+                        space_count += 1;
+                    }
+                }
+                _ => {
+                    if current_length > 0 {
+                        lengths.push(current_length);
+                        current_length = 0;
+                    }
+                    space_count = 0;
+                    in_dash_run = false;
+                }
+            }
+        }
+
+        if current_length > 0 {
+            lengths.push(current_length);
+        }
+
+        lengths
+    }
+
+    /// Get the protein_only field.
+    pub fn get_protein_only(&self) -> Option<String> {
+        self.protein_only.clone()
+    }
+
+    /// Set the protein_only field.
+    pub fn set_protein_only(&mut self, protein_only: String) {
+        self.protein_only = Some(protein_only);
+    }
+
+    /// Get the columns field.
+    pub fn get_columns(&self) -> String {
+        self.columns.clone()
+    }
+
+    /// Set the columns field.
+    pub fn set_columns(&mut self, columns: String) {
+        self.columns = columns;
+    }
+
+    /// Get the dashes field.
+    pub fn get_dashes(&self) -> String {
+        self.dashes.clone()
+    }
+
+    /// Set the dashes field.
+    pub fn set_dashes(&mut self, dashes: String) {
+        self.dashes = dashes;
+    }
+}
+
+#[derive(Default, Clone)]
 /// Metadata about the search that produced the HMMER tblout file.
 pub struct Meta {
     /// The program used to generate the output.
@@ -336,6 +469,22 @@ pub struct Meta {
     current_dir: PathBuf,
     /// The date the program was run.
     date: String,
+}
+
+// Implement Display for Meta.
+impl Display for Meta {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        writeln!(f, "#")?;
+        writeln!(f, "# Program:         {}", self.program)?;
+        writeln!(f, "# Version:         {}", self.version)?;
+        writeln!(f, "# Pipeline mode:   {}", self.pipeline_mode)?;
+        writeln!(f, "# Query file:      {}", self.query_file.display())?;
+        writeln!(f, "# Target file:     {}", self.target_file.display())?;
+        writeln!(f, "# Options:         {}", self.options)?;
+        writeln!(f, "# Current dir:     {}", self.current_dir.display())?;
+        writeln!(f, "# Date:            {}", self.date)?;
+        write!(f, "# [ok]")
+    }
 }
 
 impl Meta {
@@ -440,6 +589,56 @@ pub struct ProteinRecord {
     dom: i32,
     rep: i32,
     inc: i32,
+    description: String,
+    col_sizes: Vec<usize>,
+}
+
+impl Display for ProteinRecord {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            // note three spaces between 9 and 10, looks like there always is between bias and exp
+            "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:>width4$e} {:>width5$} {:>width6$} {:>width7$e} {:>width8$} {:>width9$} {:>width10$.1} {:>width11$} {:>width12$} {:>width13$} {:>width14$} {:>width15$} {:>width16$} {:>width17$} {:>width18$}",
+            self.target_name,
+            self.target_accession,
+            self.query_name,
+            self.query_accession,
+            self.e_value_full,
+            self.score_full,
+            self.bias_full,
+            self.e_value_best,
+            self.score_best,
+            self.bias_best,
+            self.exp,
+            self.reg,
+            self.clu,
+            self.ov,
+            self.env,
+            self.dom,
+            self.rep,
+            self.inc,
+            self.description,
+            width0 = self.col_sizes[0],
+            width1 = self.col_sizes[1],
+            width2 = self.col_sizes[2],
+            width3 = self.col_sizes[3],
+            width4 = self.col_sizes[4],
+            width5 = self.col_sizes[5],
+            width6 = self.col_sizes[6],
+            width7 = self.col_sizes[7],
+            width8 = self.col_sizes[8],
+            width9 = self.col_sizes[9],
+            width10 = self.col_sizes[10],
+            width11 = self.col_sizes[11],
+            width12 = self.col_sizes[12],
+            width13 = self.col_sizes[13],
+            width14 = self.col_sizes[14],
+            width15 = self.col_sizes[15],
+            width16 = self.col_sizes[16],
+            width17 = self.col_sizes[17],
+            width18 = self.col_sizes[18]
+        )
+    }
 }
 
 impl ProteinRecord {
@@ -462,6 +661,8 @@ impl ProteinRecord {
         dom: i32,
         rep: i32,
         inc: i32,
+        description: String,
+        col_sizes: Vec<usize>,
     ) -> Self {
         ProteinRecord {
             target_name,
@@ -482,6 +683,8 @@ impl ProteinRecord {
             dom,
             rep,
             inc,
+            description,
+            col_sizes,
         }
     }
 
@@ -557,6 +760,10 @@ impl ProteinRecord {
         self.inc
     }
 
+    pub fn description(&self) -> String {
+        self.description.clone()
+    }
+
     pub fn set_target_name(&mut self, target_name: String) {
         self.target_name = target_name;
     }
@@ -628,6 +835,10 @@ impl ProteinRecord {
     pub fn set_inc(&mut self, inc: i32) {
         self.inc = inc;
     }
+
+    pub fn set_description(&mut self, description: String) {
+        self.description = description;
+    }
 }
 
 /// A record in a HMMER tblout file
@@ -649,6 +860,67 @@ pub struct DNARecord {
     e_value: f32,
     score: f32,
     bias: f32,
+    description: String,
+    col_sizes: Vec<usize>,
+}
+
+// a display implementation for `DNARecord`
+// the original HMMER output is:
+// "...deliberately space-
+// delimited (rather than tab-delimited)
+// and justified into aligned columns,
+// so these files are suitable both for
+// automated parsing and for human
+// examination. I feel that tab-delimited
+// data files are difficult for humans
+// to examine and spot check. For this
+// reason, I think tab-delimited files are
+// a minor evil in the world. Although I
+// occasionally receive shrieks of outrage
+// about this, I still stubbornly feel that
+// space-delimited files are just as easily
+// parsed as tab-delimited files"
+
+impl Display for DNARecord {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            // tabs would be just as good, Eddy.
+            "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:>width4$} {:>width5$} {:>width6$} {:>width7$} {:>width8$} {:>width9$} {:>width10$} {:^width11$} {:>width12$e} {:>width13$} {:>width14$} {:<width15$}",
+            self.target_name,
+            self.target_accession,
+            self.query_name,
+            self.query_accession,
+            self.hmm_from,
+            self.hmm_to,
+            self.ali_from,
+            self.ali_to,
+            self.env_from,
+            self.env_to,
+            self.sq_len,
+            self.strand.to_string(),
+            self.e_value,
+            self.score,
+            self.bias,
+            self.description,
+            width0 = self.col_sizes[0],
+            width1 = self.col_sizes[1],
+            width2 = self.col_sizes[2],
+            width3 = self.col_sizes[3],
+            width4 = self.col_sizes[4],
+            width5 = self.col_sizes[5],
+            width6 = self.col_sizes[6],
+            width7 = self.col_sizes[7],
+            width8 = self.col_sizes[8],
+            width9 = self.col_sizes[9],
+            width10 = self.col_sizes[10],
+            width11 = self.col_sizes[11],
+            width12 = self.col_sizes[12],
+            width13 = self.col_sizes[13],
+            width14 = self.col_sizes[14],
+            width15 = self.col_sizes[15],
+        )
+    }
 }
 
 impl DNARecord {
@@ -668,6 +940,8 @@ impl DNARecord {
         e_value: f32,
         score: f32,
         bias: f32,
+        description: String,
+        col_sizes: Vec<usize>,
     ) -> Self {
         DNARecord {
             target_name,
@@ -685,6 +959,8 @@ impl DNARecord {
             e_value,
             score,
             bias,
+            description,
+            col_sizes,
         }
     }
 
@@ -745,6 +1021,10 @@ impl DNARecord {
 
     pub fn bias(&self) -> f32 {
         self.bias
+    }
+
+    pub fn description(&self) -> String {
+        self.description.clone()
     }
 }
 
