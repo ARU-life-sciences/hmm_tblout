@@ -276,6 +276,14 @@ impl Record {
             Record::Dna(record) => Some(record.e_value()),
         }
     }
+
+    /// A description, as free text. Available in DNA and protein records.
+    pub fn description(&self) -> String {
+        match self {
+            Record::Protein(record) => record.description(),
+            Record::Dna(record) => record.description(),
+        }
+    }
 }
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Copy)]
@@ -597,7 +605,6 @@ impl Display for ProteinRecord {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(
             f,
-            // note three spaces between 9 and 10, looks like there always is between bias and exp
             "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:>width4$e} {:>width5$} {:>width6$} {:>width7$e} {:>width8$} {:>width9$} {:>width10$.1} {:>width11$} {:>width12$} {:>width13$} {:>width14$} {:>width15$} {:>width16$} {:>width17$} {:>width18$}",
             self.target_name,
             self.target_accession,
