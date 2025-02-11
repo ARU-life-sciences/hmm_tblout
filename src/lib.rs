@@ -201,6 +201,22 @@ sp|P29082|SOR_ACIAM  -          SOR                  PF07682.13  1.5e-152  492.8
 # Date:            Mon May 24 13:53:50 2021
 # [ok]";
 
+    const CMSCAN_FILE: &str = "#target name         accession query name           accession mdl mdl from   mdl to seq from   seq to strand trunc pass   gc  bias  score   E-value inc description of target
+#------------------- --------- -------------------- --------- --- -------- -------- -------- -------- ------ ----- ---- ---- ----- ------ --------- --- ---------------------
+Intron_gpII          RF00029   u14                  -          cm        1       77     1236     1367      +    no    1 0.52   0.0   50.3   2.1e-11 !   Group II catalytic intron
+Intron_gpII          RF00029   u15                  -          cm        1       77    16059    16120      +    no    1 0.66   0.0   63.3   1.8e-13 !   Group II catalytic intron
+Intron_gpII          RF00029   u16                  -          cm        1       77    52587    52722      +    no    1 0.44   0.0   12.8       0.9 ?   Group II catalytic intron
+#
+# Program:         cmscan
+# Version:         1.1.4 (Dec 2020)
+# Pipeline mode:   SCAN
+# Query file:      ../data/Acaena_ovalifolia.fasta
+# Target file:     ../rfam_introns/group_II_intron.cm
+# Option settings: /software/team301/infernal-1.1.4-linux-intel-gcc/binaries/cmscan --tblout test.tbl ../rfam_introns/group_II_intron.cm ../data/Acaena_ovalifolia.fasta 
+# Current dir:     /lustre/scratch123/tol/teams/blaxter/users/mb39/ARU/mito_structural_variation/annotation/src
+# Date:            Tue Feb 11 14:09:12 2025
+# [ok]";
+
     #[test]
     fn test_whole_file() {
         let reader = Reader::from_reader(b(NHMMER_FILE));
@@ -360,5 +376,22 @@ sp|P29082|SOR_ACIAM  -          SOR                  PF07682.13  1.5e-152  492.8
         assert_eq!(header.get_protein_only(), header_true.get_protein_only());
         assert_eq!(header.get_columns(), header_true.get_columns());
         assert_eq!(header.get_dashes(), header_true.get_dashes());
+    }
+
+    #[test]
+    fn test_cmscan() {
+        let reader = Reader::from_reader(b(CMSCAN_FILE));
+        let mut r = reader.unwrap();
+        let mut records = r.records();
+
+        // first record
+        let first = records.next().unwrap().unwrap();
+
+        assert_eq!(first.target_name(), "Intron_gpII".to_string());
+        assert_eq!(first.target_accession(), "RF00029".to_string());
+        assert_eq!(first.query_name(), "u14".to_string());
+        assert_eq!(first.query_accession(), "-".to_string());
+        assert_eq!(first.mdl_from().unwrap(), 1);
+        assert_eq!(first.mdl_to().unwrap(), 77);
     }
 }

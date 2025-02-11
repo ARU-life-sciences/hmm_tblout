@@ -12,6 +12,8 @@ pub enum Record {
     Protein(ProteinRecord),
     /// A DNA record.
     Dna(DNARecord),
+    /// A cmsearch/cmscan record.
+    CM(CMRecord),
 }
 
 /// A record which could either be from a protein search or a
@@ -24,6 +26,7 @@ impl Record {
         match self {
             Record::Protein(record) => record.target_name(),
             Record::Dna(record) => record.target_name(),
+            Record::CM(cmrecord) => cmrecord.target_name(),
         }
     }
     /// The accession of the target sequence or profile, or ’-’ if none.
@@ -31,6 +34,7 @@ impl Record {
         match self {
             Record::Protein(record) => record.target_accession(),
             Record::Dna(record) => record.target_accession(),
+            Record::CM(cmrecord) => cmrecord.target_accession(),
         }
     }
     /// The name of the query sequence or profile.
@@ -38,6 +42,7 @@ impl Record {
         match self {
             Record::Protein(record) => record.query_name(),
             Record::Dna(record) => record.query_name(),
+            Record::CM(cmrecord) => cmrecord.query_name(),
         }
     }
     /// The accession of the query sequence or profile, or '-' if none.
@@ -45,6 +50,7 @@ impl Record {
         match self {
             Record::Protein(record) => record.query_accession(),
             Record::Dna(record) => record.query_accession(),
+            Record::CM(cmrecord) => cmrecord.query_accession(),
         }
     }
     /// The expectation value (statistical significance) of the target.
@@ -59,6 +65,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.e_value_full()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
     /// The score (in bits) for this target/query comparison. It includes
@@ -67,9 +74,21 @@ impl Record {
     pub fn score_full(&self) -> Option<f32> {
         match self {
             Record::Protein(record) => Some(record.score_full()),
-            Record::Dna(record) => Some(record.score()),
+            Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
+
+    /// The score (in bits) for this target/query comparison. It includes the biased-composition correction (the
+    /// “null3” model for CM hits, or the “null2” model for HMM hits). DNA and cmsearch/cmscan.
+    pub fn score(&self) -> Option<f32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(record) => Some(record.score()),
+            Record::CM(cmrecord) => Some(cmrecord.score()),
+        }
+    }
+
     /// The biased-composition correction: the bit score difference
     /// contributed by the null2 model. High bias scores may be a
     /// red flag for a false positive, especially when the bias score is as
@@ -81,7 +100,8 @@ impl Record {
     pub fn bias_full(&self) -> Option<f32> {
         match self {
             Record::Protein(record) => Some(record.bias_full()),
-            Record::Dna(record) => Some(record.bias()),
+            Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
     /// The E-value if only the single best-scoring domain envelope were
@@ -97,6 +117,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.e_value_best()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
     /// The bit score if only the single best-scoring domain
@@ -106,6 +127,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.score_best()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
     /// The null2 bias correction that was applied to the bit score
@@ -114,8 +136,23 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.bias_best()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
+
+    /// The biased-composition correction: the bit score difference contributed by the null3 model for CM hits, or
+    /// the null2 model for HMM hits. High bias scores may be a red flag for a false positive. It is difficult to correct for all
+    /// possible ways in which a nonrandom but nonhomologous biological sequences can appear to be similar, such as
+    /// short-period tandem repeats, so there are cases where the bias correction is not strong enough (creating false
+    /// positives). DNA and cmsearch/cmscan only.
+    pub fn bias(&self) -> Option<f32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(record) => Some(record.bias()),
+            Record::CM(cmrecord) => Some(cmrecord.bias()),
+        }
+    }
+
     /// Expected number of domains, as calculated by posterior decoding on
     /// the mean number of begin states used in the alignment ensemble.
     /// Protein (like) records only.
@@ -123,6 +160,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.exp()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -142,6 +180,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.reg()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -152,6 +191,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.clu()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -162,6 +202,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.ov()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -172,6 +213,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.env()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -183,6 +225,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.dom()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -193,6 +236,7 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.rep()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
         }
     }
 
@@ -202,6 +246,19 @@ impl Record {
         match self {
             Record::Protein(record) => Some(record.inc()),
             Record::Dna(_) => None,
+            Record::CM(_) => None,
+        }
+    }
+
+    /// Indicates whether or not this hit achieves the inclusion threshold: ’!’ if it does, ’?’ if it does not (and rather
+    /// only achieves the reporting threshold). By default, the inclusion threshold is an E-value of 0.01 and the reporting
+    /// threshold is an E-value of 10.0, but these can be changed with command line options as described in the manual
+    /// pages. cmsearch/cmscan only.
+    pub fn cm_inc(&self) -> Option<char> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.inc()),
         }
     }
 
@@ -210,6 +267,7 @@ impl Record {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.hmm_from()),
+            Record::CM(_) => None,
         }
     }
 
@@ -218,6 +276,7 @@ impl Record {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.hmm_to()),
+            Record::CM(_) => None,
         }
     }
 
@@ -227,61 +286,157 @@ impl Record {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.ali_from()),
+            Record::CM(_) => None,
         }
     }
+
     /// The position in the target sequence at which the hit ends. DNA
     /// records only.
     pub fn ali_to(&self) -> Option<i32> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.ali_to()),
+            Record::CM(_) => None,
         }
     }
+
     /// The position in the target sequence where the surrounding envelope starts.
     /// DNA records only.
     pub fn env_from(&self) -> Option<i32> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.env_from()),
+            Record::CM(_) => None,
         }
     }
+
     /// The position in the target sequence at which the surrounding envelope ends.
     /// DNA records only.
     pub fn env_to(&self) -> Option<i32> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.env_to()),
+            Record::CM(_) => None,
         }
     }
+
     /// The length of the target sequence. DNA records only.
     pub fn sq_len(&self) -> Option<i32> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.sq_len()),
+            Record::CM(_) => None,
         }
     }
+
     /// The strand on which the hit was found
-    /// (“-" when alifrom>ali to). DNA records only.
+    /// (“-" when alifrom>ali to). DNA and cmsearch/cmscan records only.
     pub fn strand(&self) -> Option<Strand> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.strand()),
+            Record::CM(cmrecord) => Some(cmrecord.strand()),
         }
     }
+
     /// The expectation value (statistical significance) of the target
-    /// as above. DNA records only.
+    /// as above. DNA and cmsearch/cmscan records only.
     pub fn e_value(&self) -> Option<f32> {
         match self {
             Record::Protein(_) => None,
             Record::Dna(record) => Some(record.e_value()),
+            Record::CM(cmrecord) => Some(cmrecord.e_value()),
         }
     }
 
-    /// A description, as free text. Available in DNA and protein records.
+    /// Which type of model was used to compute the final score. Either ’cm’ or ’hmm’. A CM is used
+    // to compute the final hit scores unless the model has zero basepairs or the --hmmonly option is used, in which
+    // case a HMM will be used. cmsearch/cmscan only.
+    pub fn mdl(&self) -> Option<String> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.mdl()),
+        }
+    }
+
+    /// The start of the alignment of this hit with respect to the profile (CM or HMM),
+    /// numbered 1..N for a profile of N consensus positions. cmsearch/cmscan only.
+    pub fn mdl_from(&self) -> Option<i32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.mdl_from()),
+        }
+    }
+
+    /// The end of the alignment of this hit with respect to the profile (CM or HMM),
+    /// numbered 1..N for a profile of N consensus positions. cmsearch/cmscan only.
+    pub fn mdl_to(&self) -> Option<i32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.mdl_to()),
+        }
+    }
+
+    /// The start of the alignment of this hit with respect to the sequence, numbered 1..L
+    /// for a sequence of L residues. cmsearch/cmscan only.
+    pub fn seq_from(&self) -> Option<i32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.seq_from()),
+        }
+    }
+
+    /// The end of the alignment of this hit with respect to the sequence, numbered 1..L for a
+    /// sequence of L residues. cmsearch/cmscan only.
+    pub fn seq_to(&self) -> Option<i32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.seq_to()),
+        }
+    }
+
+    /// Indicates if this is predicted to be a truncated CM hit or not. This will be “no” if it is a CM hit that is not
+    /// predicted to be truncated by the end of the sequence, “5’ ” or “3’ ” if the hit is predicted to have one or more 5’ or
+    /// 3’ residues missing due to a artificial truncation of the sequence, or “5’&3”’ if the hit is predicted to have one or
+    /// more 5’ residues missing and one or more 3’ residues missing. If the hit is an HMM hit, this will always be ’-’. cmsearch/cmscan only.
+    pub fn trunc(&self) -> Option<String> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.trunc()),
+        }
+    }
+
+    /// Indicates what “pass” of the pipeline the hit was detected on. This is probably only useful for testing and
+    /// debugging. Non-truncated hits are found on the first pass, truncated hits are found on successive passes. cmsearch/cmscan only.
+    pub fn pass(&self) -> Option<i32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.pass()),
+        }
+    }
+
+    /// Fraction of G and C nucleotides in the hit. cmsearch/cmscan only.
+    pub fn gc(&self) -> Option<f32> {
+        match self {
+            Record::Protein(_) => None,
+            Record::Dna(_) => None,
+            Record::CM(cmrecord) => Some(cmrecord.gc()),
+        }
+    }
+
+    /// A description, as free text. Available in DNA, protein, and cmsearch/cmscan records.
     pub fn description(&self) -> String {
         match self {
             Record::Protein(record) => record.description(),
             Record::Dna(record) => record.description(),
+            Record::CM(cmrecord) => cmrecord.description(),
         }
     }
 }
@@ -304,6 +459,10 @@ pub enum Program {
     Hmmsearch,
     /// The program used was `phmmer`.
     Phmmer, // test done
+    /// The program used was `cmsearch`.
+    Cmsearch,
+    /// The program used was `cmscan`.
+    Cmscan,
 }
 
 impl FromStr for Program {
@@ -317,6 +476,8 @@ impl FromStr for Program {
             "hmmscan" => Ok(Program::Hmmscan),
             "hmmsearch" => Ok(Program::Hmmsearch),
             "phmmer" => Ok(Program::Phmmer),
+            "cmsearch" => Ok(Program::Cmsearch),
+            "cmscan" => Ok(Program::Cmscan),
             _ => Err(Error::new(ErrorKind::Meta(format!(
                 "The program \"{}\" is not supported.",
                 s
@@ -334,6 +495,8 @@ impl Display for Program {
             Program::Hmmscan => "hmmscan",
             Program::Hmmsearch => "hmmsearch",
             Program::Phmmer => "phmmer",
+            Program::Cmsearch => "cmsearch",
+            Program::Cmscan => "cmscan",
             // FIXME: make this error better.
             Program::None => return Err(std::fmt::Error),
         };
@@ -1030,6 +1193,224 @@ impl DNARecord {
         self.bias
     }
 
+    pub fn description(&self) -> String {
+        self.description.clone()
+    }
+}
+
+#[derive(Debug)]
+/// The target hits tables produced from `cmsearch`
+/// and `cmscan`. We cater *only* for format 1.
+/// i.e. the default format.
+pub struct CMRecord {
+    target_name: String,
+    target_accession: String,
+    query_name: String,
+    query_accession: String,
+    mdl: String,
+    mdl_from: i32,
+    mdl_to: i32,
+    seq_from: i32,
+    seq_to: i32,
+    strand: Strand,
+    trunc: String,
+    pass: i32,
+    gc: f32,
+    bias: f32,
+    score: f32,
+    e_value: f32,
+    inc: char,
+    description: String,
+    col_sizes: Vec<usize>,
+}
+
+impl Display for CMRecord {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:<width4$} {:>width5$} {:>width6$} {:>width7$} {:>width8$} {:>width9$} {:>width10$} {:>width11$} {:>width12$} {:>width13$} {:>width14$} {:>width15$} {:^width16$} {:<width17$}",
+            self.target_name,
+            self.target_accession,
+            self.query_name,
+            self.query_accession,
+            self.mdl,
+            self.mdl_from,
+            self.mdl_to,
+            self.seq_from,
+            self.seq_to,
+            self.strand.to_string(),
+            self.trunc,
+            self.pass,
+            self.gc,
+            self.bias,
+            self.score,
+            self.e_value,
+            self.inc,
+            self.description,
+            width0 = self.col_sizes[0],
+            width1 = self.col_sizes[1],
+            width2 = self.col_sizes[2],
+            width3 = self.col_sizes[3],
+            width4 = self.col_sizes[4],
+            width5 = self.col_sizes[5],
+            width6 = self.col_sizes[6],
+            width7 = self.col_sizes[7],
+            width8 = self.col_sizes[8],
+            width9 = self.col_sizes[9],
+            width10 = self.col_sizes[10],
+            width11 = self.col_sizes[11],
+            width12 = self.col_sizes[12],
+            width13 = self.col_sizes[13],
+            width14 = self.col_sizes[14],
+            width15 = self.col_sizes[15],
+            width16 = self.col_sizes[16],
+            width17 = self.col_sizes[17]
+        )
+    }
+}
+
+impl CMRecord {
+    pub fn new(
+        target_name: String,
+        target_accession: String,
+        query_name: String,
+        query_accession: String,
+        mdl: String,
+        mdl_from: i32,
+        mdl_to: i32,
+        seq_from: i32,
+        seq_to: i32,
+        strand: Strand,
+        trunc: String,
+        pass: i32,
+        gc: f32,
+        bias: f32,
+        score: f32,
+        e_value: f32,
+        inc: char,
+        description: String,
+        col_sizes: Vec<usize>,
+    ) -> Self {
+        CMRecord {
+            target_name,
+            target_accession,
+            query_name,
+            query_accession,
+            mdl,
+            mdl_from,
+            mdl_to,
+            seq_from,
+            seq_to,
+            strand,
+            trunc,
+            pass,
+            gc,
+            bias,
+            score,
+            e_value,
+            inc,
+            description,
+            col_sizes,
+        }
+    }
+
+    /// The name of the target sequence or profile.
+    pub fn target_name(&self) -> String {
+        self.target_name.clone()
+    }
+
+    /// The accession of the target sequence or profile, or ’-’ if none.
+    pub fn target_accession(&self) -> String {
+        self.target_accession.clone()
+    }
+    /// The name of the query sequence or profile.
+    pub fn query_name(&self) -> String {
+        self.query_name.clone()
+    }
+    /// The accession of the query sequence or profile, or ’-’ if none.
+    pub fn query_accession(&self) -> String {
+        self.query_accession.clone()
+    }
+    /// Which type of model was used to compute the final score. Either ’cm’ or ’hmm’. A CM is used
+    // to compute the final hit scores unless the model has zero basepairs or the --hmmonly option is used, in which
+    // case a HMM will be used.
+    pub fn mdl(&self) -> String {
+        self.mdl.clone()
+    }
+    /// The start of the alignment of this hit with respect to the profile (CM or HMM),
+    /// numbered 1..N for a profile of N consensus positions.
+    pub fn mdl_from(&self) -> i32 {
+        self.mdl_from
+    }
+    /// The end of the alignment of this hit with respect to the profile (CM or HMM),
+    /// numbered 1..N for a profile of N consensus positions.
+    pub fn mdl_to(&self) -> i32 {
+        self.mdl_to
+    }
+    /// The start of the alignment of this hit with respect to the sequence, numbered 1..L
+    /// for a sequence of L residues.
+    pub fn seq_from(&self) -> i32 {
+        self.seq_from
+    }
+    /// The end of the alignment of this hit with respect to the sequence, numbered 1..L for a
+    /// sequence of L residues.
+    pub fn seq_to(&self) -> i32 {
+        self.seq_to
+    }
+    /// The strand on which the hit occurs on the sequence. ’+’ if the hit is on the top (Watson) strand, ’-’ if
+    /// the hit is on the bottom (Crick) strand. If on the top strand, the “seq from” value will be less than or equal to the
+    /// “seq to” value, else it will be greater than or equal to it.
+    pub fn strand(&self) -> Strand {
+        self.strand
+    }
+    /// Indicates if this is predicted to be a truncated CM hit or not. This will be “no” if it is a CM hit that is not
+    /// predicted to be truncated by the end of the sequence, “5’ ” or “3’ ” if the hit is predicted to have one or more 5’ or
+    /// 3’ residues missing due to a artificial truncation of the sequence, or “5’&3”’ if the hit is predicted to have one or
+    /// more 5’ residues missing and one or more 3’ residues missing. If the hit is an HMM hit, this will always be ’-’.
+    pub fn trunc(&self) -> String {
+        self.trunc.clone()
+    }
+    /// Indicates what “pass” of the pipeline the hit was detected on. This is probably only useful for testing and
+    /// debugging. Non-truncated hits are found on the first pass, truncated hits are found on successive passes.
+    pub fn pass(&self) -> i32 {
+        self.pass
+    }
+    /// Fraction of G and C nucleotides in the hit.
+    pub fn gc(&self) -> f32 {
+        self.gc
+    }
+    /// The biased-composition correction: the bit score difference contributed by the null3 model for CM hits, or
+    /// the null2 model for HMM hits. High bias scores may be a red flag for a false positive. It is difficult to correct for all
+    /// possible ways in which a nonrandom but nonhomologous biological sequences can appear to be similar, such as
+    /// short-period tandem repeats, so there are cases where the bias correction is not strong enough (creating false
+    /// positives).
+    pub fn bias(&self) -> f32 {
+        self.bias
+    }
+    /// The score (in bits) for this target/query comparison. It includes the biased-composition correction (the
+    /// “null3” model for CM hits, or the “null2” model for HMM hits).
+    pub fn score(&self) -> f32 {
+        self.score
+    }
+    /// The expectation value (statistical significance) of the target. This is a per query E-value; i.e. calcu-
+    /// lated as the expected number of false positives achieving this comparison’s score for a single query against the
+    /// search space Z. For cmsearch Z is defined as the total number of nucleotides in the target dataset multiplied
+    /// by 2 because both strands are searched. For cmscan Z is the total number of nucleotides in the query sequence
+    /// multiplied by 2 because both strands are searched and multiplied by the number of models in the target database.
+    /// If you search with multiple queries and if you want to control the overall false positive rate of that search rather
+    /// than the false positive rate per query, you will want to multiply this per-query E-value by how many queries you’re
+    /// doing.
+    pub fn e_value(&self) -> f32 {
+        self.e_value
+    }
+    /// Indicates whether or not this hit achieves the inclusion threshold: ’!’ if it does, ’?’ if it does not (and rather
+    /// only achieves the reporting threshold). By default, the inclusion threshold is an E-value of 0.01 and the reporting
+    /// threshold is an E-value of 10.0, but these can be changed with command line options as described in the manual
+    /// pages.
+    pub fn inc(&self) -> char {
+        self.inc
+    }
+    /// The remainder of the line is the target’s description line, as free text.
     pub fn description(&self) -> String {
         self.description.clone()
     }

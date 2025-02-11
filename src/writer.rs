@@ -33,6 +33,7 @@ impl<W: Write> Writer<W> {
         match record {
             Record::Dna(record) => writeln!(self.writer, "{}", record),
             Record::Protein(record) => writeln!(self.writer, "{}", record),
+            Record::CM(cmrecord) => writeln!(self.writer, "{}", cmrecord),
         }
     }
 

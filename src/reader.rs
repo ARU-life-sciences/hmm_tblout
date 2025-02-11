@@ -1,5 +1,5 @@
 use crate::{
-    record::{Header, Meta, Program, Record, Strand},
+    record::{CMRecord, Header, Meta, Program, Record, Strand},
     DNARecord, Error, ErrorKind, ProteinRecord, Result,
 };
 
@@ -208,6 +208,8 @@ pub enum RecordsIter<'a, R> {
     Dna(DNARecordsIter<'a, R>),
     /// An iterator over protein records.
     Protein(ProteinRecordsIter<'a, R>),
+    /// An iterator over CM records.
+    CM(CMRecordsIter<'a, R>),
 }
 
 impl<'r, R: io::Read> Iterator for RecordsIter<'r, R> {
@@ -217,6 +219,7 @@ impl<'r, R: io::Read> Iterator for RecordsIter<'r, R> {
         match self {
             RecordsIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
             RecordsIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
+            RecordsIter::CM(e) => e.next().map(|rec| rec.map(Record::CM)),
         }
     }
 }
@@ -263,6 +266,27 @@ impl<'r, R: io::Read> Iterator for ProteinRecordsIter<'r, R> {
     }
 }
 
+/// A borrowed iterator over the records of a refer file.
+pub struct CMRecordsIter<'r, R: 'r> {
+    /// The underlying reader
+    rdr: &'r mut Reader<R>,
+}
+
+impl<'r, R: io::Read> Iterator for CMRecordsIter<'r, R> {
+    type Item = Result<CMRecord>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.rdr.read_cm_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
 impl<'r, R: io::Read> RecordsIter<'r, R> {
     fn new(rdr: &'r mut Reader<R>, program: Program) -> RecordsIter<'r, R> {
         match program {
@@ -270,6 +294,7 @@ impl<'r, R: io::Read> RecordsIter<'r, R> {
             Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
                 RecordsIter::Protein(ProteinRecordsIter { rdr })
             }
+            Program::Cmsearch | Program::Cmscan => RecordsIter::CM(CMRecordsIter { rdr }),
             Program::None => unreachable!(),
         }
     }
@@ -278,6 +303,7 @@ impl<'r, R: io::Read> RecordsIter<'r, R> {
         match self {
             RecordsIter::Dna(r) => r.rdr,
             RecordsIter::Protein(r) => r.rdr,
+            RecordsIter::CM(r) => r.rdr,
         }
     }
 
@@ -286,6 +312,7 @@ impl<'r, R: io::Read> RecordsIter<'r, R> {
         match self {
             RecordsIter::Dna(r) => r.rdr,
             RecordsIter::Protein(r) => r.rdr,
+            RecordsIter::CM(r) => r.rdr,
         }
     }
 }
@@ -296,6 +323,8 @@ pub enum RecordsIntoIter<R> {
     Dna(DNARecordsIntoIter<R>),
     /// An iterator over protein records.
     Protein(ProteinRecordsIntoIter<R>),
+    /// An iterator over CM records.
+    CM(CMRecordsIntoIter<R>),
 }
 
 impl<R: io::Read> Iterator for RecordsIntoIter<R> {
@@ -305,10 +334,11 @@ impl<R: io::Read> Iterator for RecordsIntoIter<R> {
         match self {
             RecordsIntoIter::Dna(e) => e.next().map(|rec| rec.map(Record::Dna)),
             RecordsIntoIter::Protein(e) => e.next().map(|rec| rec.map(Record::Protein)),
+            RecordsIntoIter::CM(e) => e.next().map(|rec| rec.map(Record::CM)),
         }
     }
 }
-/// An owned iterator over the records of a refer file.
+/// An owned iterator over the records of a DNA tblout file.
 pub struct DNARecordsIntoIter<R> {
     /// The underlying reader.
     rdr: Reader<R>,
@@ -321,6 +351,7 @@ impl<R: io::Read> RecordsIntoIter<R> {
             Program::Jackhmmer | Program::Hmmscan | Program::Hmmsearch | Program::Phmmer => {
                 RecordsIntoIter::Protein(ProteinRecordsIntoIter { rdr })
             }
+            Program::Cmsearch | Program::Cmscan => RecordsIntoIter::CM(CMRecordsIntoIter { rdr }),
             Program::None => unreachable!(),
         }
     }
@@ -329,6 +360,7 @@ impl<R: io::Read> RecordsIntoIter<R> {
         match self {
             RecordsIntoIter::Dna(r) => &r.rdr,
             RecordsIntoIter::Protein(r) => &r.rdr,
+            RecordsIntoIter::CM(r) => &r.rdr,
         }
     }
 
@@ -337,6 +369,7 @@ impl<R: io::Read> RecordsIntoIter<R> {
         match self {
             RecordsIntoIter::Dna(r) => &mut r.rdr,
             RecordsIntoIter::Protein(r) => &mut r.rdr,
+            RecordsIntoIter::CM(r) => &mut r.rdr,
         }
     }
 
@@ -345,6 +378,7 @@ impl<R: io::Read> RecordsIntoIter<R> {
         match self {
             RecordsIntoIter::Dna(r) => r.rdr,
             RecordsIntoIter::Protein(r) => r.rdr,
+            RecordsIntoIter::CM(r) => r.rdr,
         }
     }
 }
@@ -364,7 +398,7 @@ impl<R: io::Read> Iterator for DNARecordsIntoIter<R> {
     }
 }
 
-/// An owned iterator over the records of a refer file.
+/// An owned iterator over the records of a protein tblout file.
 pub struct ProteinRecordsIntoIter<R> {
     /// The underlying reader.
     rdr: Reader<R>,
@@ -375,6 +409,27 @@ impl<R: io::Read> Iterator for ProteinRecordsIntoIter<R> {
 
     fn next(&mut self) -> Option<Result<ProteinRecord>> {
         match self.rdr.read_protein_record() {
+            Ok(Some(r)) => {
+                self.rdr.line += 1;
+                Some(Ok(r))
+            }
+            Ok(None) => None,
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+/// An owned iterator over the records of a CM tblout file.
+pub struct CMRecordsIntoIter<R> {
+    /// The underlying reader.
+    rdr: Reader<R>,
+}
+
+impl<R: io::Read> Iterator for CMRecordsIntoIter<R> {
+    type Item = Result<CMRecord>;
+
+    fn next(&mut self) -> Option<Result<CMRecord>> {
+        match self.rdr.read_cm_record() {
             Ok(Some(r)) => {
                 self.rdr.line += 1;
                 Some(Ok(r))
@@ -538,6 +593,77 @@ impl<R: io::Read> Reader<R> {
                         env,
                         dom,
                         rep,
+                        inc,
+                        description,
+                        col_sizes,
+                    );
+
+                    return Ok(Some(record));
+                }
+                Err(e) => return Err(Error::new(ErrorKind::Io(e))),
+            }
+        }
+    }
+
+    fn read_cm_record(&mut self) -> Result<Option<CMRecord>> {
+        let mut line = String::new();
+        let col_sizes = self.header.calculate_dashes();
+        loop {
+            line.clear();
+            match self.rdr.read_line(&mut line) {
+                Ok(0) => return Ok(None),
+                Ok(_) => {
+                    self.line += 1;
+                    if line.starts_with('#') {
+                        continue;
+                    }
+                    let l_vec = line.split_whitespace().collect::<Vec<&str>>();
+                    let target_name = l_vec[0].to_string();
+                    let target_accession = l_vec[1].to_string();
+                    let query_name = l_vec[2].to_string();
+                    let query_accession = l_vec[3].to_string();
+
+                    let mdl = l_vec[4].to_string();
+                    let mdl_from = l_vec[5].parse::<i32>()?;
+                    let mdl_to = l_vec[6].parse::<i32>()?;
+
+                    let seq_from = l_vec[7].parse::<i32>()?;
+                    let seq_to = l_vec[8].parse::<i32>()?;
+
+                    let strand = l_vec[9].parse::<Strand>()?;
+
+                    let trunc = l_vec[10].to_string();
+                    let pass = l_vec[11].parse::<i32>()?;
+
+                    let gc = l_vec[12].parse::<f32>()?;
+
+                    let bias = l_vec[13].parse::<f32>()?;
+                    let score = l_vec[14].parse::<f32>()?;
+
+                    let e_value = l_vec[15].parse::<f32>()?;
+
+                    let inc = l_vec[16].parse::<char>()?;
+
+                    // description is all the remainder of the line as free text
+                    let description = l_vec[17..].join(" ");
+
+                    let record = CMRecord::new(
+                        target_name,
+                        target_accession,
+                        query_name,
+                        query_accession,
+                        mdl,
+                        mdl_from,
+                        mdl_to,
+                        seq_from,
+                        seq_to,
+                        strand,
+                        trunc,
+                        pass,
+                        gc,
+                        bias,
+                        score,
+                        e_value,
                         inc,
                         description,
                         col_sizes,

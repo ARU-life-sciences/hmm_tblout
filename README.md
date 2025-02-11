@@ -1,6 +1,6 @@
 # `hmm_tblout`
 
-Simple parsing of tabular output from `HMMER::nhmmer --tblout ...`.
+Simple parsing of tabular output from `HMMER::nhmmer --tblout ...`, and also Infernal `cmscan/cmsearch`.
 
 ## Example
 
@@ -33,10 +33,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
-
-
-## Yet to implement
-
-May handle these in the future. Or feel free to contribute!
-
-- Does not handle the description column, as this may contain spaces. 

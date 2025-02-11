@@ -1,4 +1,5 @@
 use std::{
+    char::ParseCharError,
     error::Error as StdError,
     fmt, io,
     num::{ParseFloatError, ParseIntError},
@@ -60,6 +61,11 @@ impl From<ParseIntError> for Error {
 impl From<ParseFloatError> for Error {
     fn from(err: ParseFloatError) -> Self {
         Error::new(ErrorKind::Float(err))
+    }
+}
+impl From<ParseCharError> for Error {
+    fn from(err: ParseCharError) -> Self {
+        Error::new(ErrorKind::Parser(err.to_string()))
     }
 }
 
