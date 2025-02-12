@@ -128,7 +128,9 @@ impl<R: io::Read> MetaReader<R> {
                     if hash_counter >= 4 {
                         // match on the starting substring of the line
                         let mut split_line = line
-                            .split(':')
+                            // FIXME: if the line contains other instances of ": ",
+                            // some of this will fail to parse correctly
+                            .split(": ")
                             .collect::<Vec<&str>>()
                             .into_iter()
                             .map(|e| e.trim())

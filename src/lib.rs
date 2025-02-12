@@ -233,6 +233,7 @@ Intron_gpII          RF00029   u16                  -          cm        1      
         let meta = r.meta();
         assert_eq!(meta.program(), Program::Nhmmer);
         assert_eq!(meta.version(), "3.4 (Aug 2023)".to_string());
+        assert_eq!(meta.date(), "Fri May  3 10:07:36 2024".to_string());
     }
 
     #[test]
