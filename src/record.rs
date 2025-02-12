@@ -1229,7 +1229,7 @@ impl Display for CMRecord {
         // TODO: possibly needs some refining
         write!(
             f,
-            "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:<width4$} {:>width5$} {:>width6$} {:>width7$} {:>width8$} {:>width9$} {:>width10$} {:>width11$} {:>width12$} {:>width13$} {:>width14$} {:>width15$e} {:^width16$} {:<width17$}",
+            "{:<width0$} {:<width1$} {:<width2$} {:<width3$} {:<width4$} {:>width5$} {:>width6$} {:>width7$} {:>width8$} {:>width9$} {:>width10$} {:>width11$} {:>width12$} {:>width13$} {:>width14$} {:>width15$e} {:<width16$} {:<width17$}",
             self.target_name,
             self.target_accession,
             self.query_name,
