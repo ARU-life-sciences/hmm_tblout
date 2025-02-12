@@ -1,6 +1,6 @@
 [package]
 name = "hmm_tblout"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["Max Brown <max.carter-brown@aru.ac.uk>"]
 description = "Parse nhmmer tblout files."
