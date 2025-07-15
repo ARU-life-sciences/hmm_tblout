@@ -163,6 +163,15 @@ impl<R: io::Read> MetaReader<R> {
             }
         }
 
+        // if the program is None, error out here
+        // the `unreachable!()` statements later on are
+        // actually unreachable now.
+        if metadata.program() == Program::None {
+            return Err(Error::new(ErrorKind::Meta(
+                "No program found in metadata".to_string(),
+            )));
+        }
+
         Ok(metadata)
     }
 }
