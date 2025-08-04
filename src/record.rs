@@ -7,6 +7,7 @@ use std::{
 
 /// A record in a HMMER tblout file. Can either be a protein
 /// record or a DNA record.
+#[derive(Debug)]
 pub enum Record {
     /// A protein record.
     Protein(ProteinRecord),
